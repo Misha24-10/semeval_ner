@@ -101,7 +101,7 @@ from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from torch import nn
 from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
 from reader import correct_file, readfile, dataframe_from_reader
-from metric import SpanF1, SpanF1_fix
+from metric.metric import SpanF1, SpanF1_fix
 
 # !cp /kaggle/input/dataset-for-ner-competition/multi_train.conll .
 # !cp /kaggle/input/dataset-for-ner-competition/multi_dev.conll .
