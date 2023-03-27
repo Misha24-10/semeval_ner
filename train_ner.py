@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-import os
-import wandb
 
 CONLLIOBV2 = {
     "B-Disease":0,
@@ -87,12 +83,15 @@ CONLLIOBV2 = {
     'O': 72
 }
 
+import os
+import wandb
 import pandas as pd
 import numpy as np
 import torch
 import pprint
 import seqeval
-from transformers import RemBertForTokenClassification, RemBertTokenizerFast
+
+from transformers import RemBertForTokenClassification, RemBertTokenizerFast, RemBertConfig
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch.optim import AdamW
@@ -101,74 +100,18 @@ from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from torch import nn
 from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
+from reader import correct_file, readfile, dataframe_from_reader
+from metric import SpanF1, SpanF1_fix
 
 # !cp /kaggle/input/dataset-for-ner-competition/multi_train.conll .
 # !cp /kaggle/input/dataset-for-ner-competition/multi_dev.conll .
 
-def correct_file(path: str):
-    flag = True
-    with open(path, 'r') as f:
-        if f.read()[-3:] == "\n\n\n":
-            flag = False 
-    if flag:
-        with open(path, 'a') as f:
-            f.write('\n')
-            f.write('\n')
-            f.write('\n')
-        print(f"file corrected")
-def readfile(filename, return_index_file=False):
-    '''
-    read data from file
-    '''
-    f = open(filename)
-    data = []
-    sentence = []
-    label= []
-    sentence_ids = []
-    for line in f:
-        if len(line)==0 or line.startswith('-DOCSTART') or line[0]=="\n":
-            if len(sentence) > 0:
-                data.append((sentence[1:], label[1:]))
-                sentence_ids.append(sentence[0] + " id " + label[0] +"\n")
-                sentence = []
-                label = []
-            continue
-        splits = line.split(' ')
-        # print(splits)
-
-        sentence.append(splits[0])
-        label.append(splits[-1][:-1])
-
-    if len(sentence) > 0:
-        data.append((sentence, label))
-        sentence = []
-        label = []
-    if return_index_file:
-        return sentence_ids, data
-    return data
 
 correct_file("./public_data/MULTI_Multilingual/multi_train.conll")
 correct_file("./public_data/MULTI_Multilingual/multi_dev.conll")
 train_reader = readfile("./public_data/MULTI_Multilingual/multi_train.conll")
 test_index, test_reader = readfile("./public_data/MULTI_Multilingual/multi_dev.conll", return_index_file=True)
 
-#!git lfs install
-#!git clone https://huggingface.co/google/rembert
-
-def dataframe_from_reader(reader):
-    sentences_one_line = []
-    sentences = []
-    labels_one_line = []
-    labels = []
-    for line in reader:
-        sentence = " ".join(line[0])
-        label = " ".join(line[1])
-        sentences_one_line.append(sentence)
-        sentences.append(line[0])
-        labels_one_line.append(label)
-        labels.append(line[1])
-    data = pd.DataFrame({"text": sentences_one_line, "labels": labels_one_line})
-    return data
 train_data = dataframe_from_reader(train_reader)
 test_data = dataframe_from_reader(test_reader)
 
@@ -194,9 +137,7 @@ config = dict(
 
 print(MODEL_NAME)
 
-import os
 os.environ["WANDB_MODE"]="offline"
-
 wandb.init(
   project="NER multilangual",
   notes="rembert ",
@@ -204,7 +145,6 @@ wandb.init(
   config=config,
 )
 
-from transformers import RemBertConfig
 class BertModel(torch.nn.Module):
     def __init__(self):
         super(BertModel, self).__init__()
@@ -217,10 +157,9 @@ class BertModel(torch.nn.Module):
         output = self.bert(input_ids=input_id, attention_mask=mask,
                            labels=label, return_dict=False)
         return output
+    
 model = BertModel()
-
 tokenizer = RemBertTokenizerFast.from_pretrained("./rembert")
-
 label_all_tokens = False
 
 def aling_label(texts, labels):
@@ -270,96 +209,6 @@ class DataSequence(torch.utils.data.Dataset):
         batch_labels = self.get_batch_labels(idx)
         return (batch_data, batch_labels)
 
-class SpanF1():
-    def __init__(self, non_entity_labels=['O']) -> None:
-        """
-        class for calculating NER score for all tokens
-        """
-        self._num_gold_mentions = 0
-        self._num_recalled_mentions = 0
-        self._num_predicted_mentions = 0
-        self._TP, self._FP, self._GT = defaultdict(int), defaultdict(int), defaultdict(int)
-        self.non_entity_labels = set(non_entity_labels)
-
-    def __call__(self, batched_predicted_spans, batched_gold_spans, sentences=None):
-        non_entity_labels = self.non_entity_labels
-
-        for predicted_spans, gold_spans in zip(batched_predicted_spans, batched_gold_spans):
-            gold_spans_set = set([x for x in gold_spans])
-            pred_spans_set = set([x for x in predicted_spans])
-
-            self._num_gold_mentions += len(gold_spans_set)
-            self._num_recalled_mentions += len(gold_spans_set & pred_spans_set)
-            self._num_predicted_mentions += len(pred_spans_set)
-
-            for val in gold_spans:
-                if val not in non_entity_labels:
-                    self._GT[val] += 1
-
-            for idx, val in enumerate(predicted_spans):
-                if val in non_entity_labels:
-                    continue
-                if val in gold_spans and val == gold_spans[idx]:
-                    self._TP[val] += 1
-                else:
-                    self._FP[val] += 1
-
-    def get_metric(self, reset: bool = False) -> float:
-        all_tags = set()
-        all_tags.update(self._TP.keys())
-        all_tags.update(self._FP.keys())
-        all_tags.update(self._GT.keys())
-        all_metrics = {}
-        for tag in all_tags:
-            precision, recall, f1_measure = self.compute_prf_metrics(true_positives=self._TP[tag],
-                                                                     false_negatives=self._GT[tag] - self._TP[tag],
-                                                                     false_positives=self._FP[tag])
-            all_metrics['P@{}'.format(tag)] = precision
-            all_metrics['R@{}'.format(tag)] = recall
-            all_metrics['F1@{}'.format(tag)] = f1_measure
-
-        # Compute the precision, recall and f1 for all spans jointly.
-        precision, recall, f1_measure = self.compute_prf_metrics(true_positives=sum(self._TP.values()),
-                                                                 false_positives=sum(self._FP.values()),
-                                                                 false_negatives=sum(self._GT.values())-sum(self._TP.values()))
-        all_metrics["micro@P"] = precision
-        all_metrics["micro@R"] = recall
-        all_metrics["micro@F1"] = f1_measure
-
-        if self._num_gold_mentions == 0:
-            entity_recall = 0.0
-        else:
-            entity_recall = self._num_recalled_mentions / float(self._num_gold_mentions)
-
-        if self._num_predicted_mentions == 0:
-            entity_precision = 0.0
-        else:
-            entity_precision = self._num_recalled_mentions / float(self._num_predicted_mentions)
-
-        all_metrics['MD@R'] = entity_recall
-        all_metrics['MD@P'] = entity_precision
-        all_metrics['MD@F1'] = 2. * ((entity_precision * entity_recall) / (entity_precision + entity_recall + 1e-13))
-        all_metrics['ALLTRUE'] = self._num_gold_mentions
-        all_metrics['ALLRECALLED'] = self._num_recalled_mentions
-        all_metrics['ALLPRED'] = self._num_predicted_mentions
-        if reset:
-            self.reset()
-        return all_metrics
-
-    @staticmethod
-    def compute_prf_metrics(true_positives: int, false_positives: int, false_negatives: int):
-        precision = float(true_positives) / float(true_positives + false_positives + 1e-13)
-        recall = float(true_positives) / float(true_positives + false_negatives + 1e-13)
-        f1_measure = 2. * ((precision * recall) / (precision + recall + 1e-13))
-        return precision, recall, f1_measure
-
-    def reset(self):
-        self._num_gold_mentions = 0
-        self._num_recalled_mentions = 0
-        self._num_predicted_mentions = 0
-        self._TP.clear()
-        self._FP.clear()
-        self._GT.clear()
 
 df_train, df_val = np.split(train_data.sample(frac=1, random_state=84),
                                    [int(config["TRAIN_VAL_SPLIT"]* len(train_data))])
@@ -372,8 +221,7 @@ def train_loop(model, df_train, df_val):
     train_dataset = DataSequence(df_train)
     val_dataset = DataSequence(df_val)
 
-    train_dataloader = DataLoader(train_dataset, num_workers=1, batch_size=config["BATCH_SIZE"],
-                                  shuffle=True)
+    train_dataloader = DataLoader(train_dataset, num_workers=1, batch_size=config["BATCH_SIZE"], shuffle=True)
     val_dataloader = DataLoader(val_dataset, num_workers=1, batch_size=config["BATCH_SIZE"])
 
     use_cuda = torch.cuda.is_available()
@@ -662,97 +510,6 @@ with open("./multi.pred.conll", "w") as my_file:
 
 """# NEw test"""
 
-class SpanF1_fix():
-    def __init__(self, non_entity_labels=['O']) -> None:
-        self._num_gold_mentions = 0
-        self._num_recalled_mentions = 0
-        self._num_predicted_mentions = 0
-        self._TP, self._FP, self._GT = defaultdict(int), defaultdict(int), defaultdict(int)
-        self.non_entity_labels = set(non_entity_labels)
-
-    def __call__(self, batched_predicted_spans, batched_gold_spans, sentences=None):
-        non_entity_labels = self.non_entity_labels
-
-        for predicted_spans, gold_spans in zip(batched_predicted_spans, batched_gold_spans):
-            gold_spans_set = set([x if x == "O" else x[2:] for x in gold_spans])
-            pred_spans_set = set([x if x == "O" else x[2:] for x in predicted_spans])
-            self._num_gold_mentions += len(gold_spans_set)
-            self._num_recalled_mentions += len(gold_spans_set & pred_spans_set)
-            self._num_predicted_mentions += len(pred_spans_set)
-
-            for val in gold_spans:
-                if val not in non_entity_labels:
-                    self._GT[val[2:]] += 1
-
-            for idx, val in enumerate(predicted_spans):
-                # print(idx, "----", val)
-                # print(val in gold_spans)
-                # print(val == gold_spans[idx])
-                if val in non_entity_labels:
-                    continue
-                if val in gold_spans and val[2:] == gold_spans[idx][2:]:
-                    self._TP[val[2:]] += 1
-                else:
-                    self._FP[val[2:]] += 1
-
-    def get_metric(self, reset: bool = False) -> float:
-        all_tags = set()
-        all_tags.update(self._TP.keys())
-        all_tags.update(self._FP.keys())
-        all_tags.update(self._GT.keys())
-        all_metrics = {}
-        for tag in all_tags:
-            precision, recall, f1_measure = self.compute_prf_metrics(true_positives=self._TP[tag],
-                                                                     false_negatives=self._GT[tag] - self._TP[tag],
-                                                                     false_positives=self._FP[tag])
-            all_metrics['P@{}'.format(tag)] = precision
-            all_metrics['R@{}'.format(tag)] = recall
-            all_metrics['F1@{}'.format(tag)] = f1_measure
-
-        # Compute the precision, recall and f1 for all spans jointly.
-        precision, recall, f1_measure = self.compute_prf_metrics(true_positives=sum(self._TP.values()),
-                                                                 false_positives=sum(self._FP.values()),
-                                                                 false_negatives=sum(self._GT.values()) - sum(
-                                                                     self._TP.values()))
-        all_metrics["micro@P"] = precision
-        all_metrics["micro@R"] = recall
-        all_metrics["micro@F1"] = f1_measure
-
-        if self._num_gold_mentions == 0:
-            entity_recall = 0.0
-        else:
-            entity_recall = self._num_recalled_mentions / float(self._num_gold_mentions)
-
-        if self._num_predicted_mentions == 0:
-            entity_precision = 0.0
-        else:
-            entity_precision = self._num_recalled_mentions / float(self._num_predicted_mentions)
-
-        all_metrics['MD@R'] = entity_recall
-        all_metrics['MD@P'] = entity_precision
-        all_metrics['MD@F1'] = 2. * ((entity_precision * entity_recall) / (entity_precision + entity_recall + 1e-13))
-        all_metrics['ALLTRUE'] = self._num_gold_mentions
-        all_metrics['ALLRECALLED'] = self._num_recalled_mentions
-        all_metrics['ALLPRED'] = self._num_predicted_mentions
-        if reset:
-            self.reset()
-        return all_metrics
-
-    @staticmethod
-    def compute_prf_metrics(true_positives: int, false_positives: int, false_negatives: int):
-        precision = float(true_positives) / float(true_positives + false_positives + 1e-13)
-        recall = float(true_positives) / float(true_positives + false_negatives + 1e-13)
-        f1_measure = 2. * ((precision * recall) / (precision + recall + 1e-13))
-        return precision, recall, f1_measure
-
-    def reset(self):
-        self._num_gold_mentions = 0
-        self._num_recalled_mentions = 0
-        self._num_predicted_mentions = 0
-        self._TP.clear()
-        self._FP.clear()
-        self._GT.clear()
-
 answers = test_data.labels.to_list()
 
 metrics = SpanF1_fix()
@@ -762,7 +519,6 @@ for it1, it2 in zip(results, answers):
     metrics([pred],[label])
 metrics.get_metric()
 
-import seqeval
 
 answers = [line.split() for line in answers]
 
