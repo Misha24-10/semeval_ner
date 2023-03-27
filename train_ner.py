@@ -180,16 +180,16 @@ MODEL_NAME = 'google/rembert'
 
 config = dict(
     model_name = MODEL_NAME,
-    LEARINGIN_RATE = 1e-5,
-    EPOCHS = 3,
-    BATCH_SIZE = 14,
+    LEARINGIN_RATE = 2e-5,
+    EPOCHS = 4,
+    BATCH_SIZE = 32,
     TRAIN_VAL_SPLIT = 0.8,
-    num_warmup_steps = 3000,
+    num_warmup_steps = 6000,
     CLIP_GRAD_VALUE = 5,
     USE_CLIP_GRAD = True,
     dict_for_labels = CONLLIOBV2,
     optimizer = "AdamW",
-    max_length = 128
+    max_length = 196
 )
 
 print(MODEL_NAME)
@@ -372,9 +372,9 @@ def train_loop(model, df_train, df_val):
     train_dataset = DataSequence(df_train)
     val_dataset = DataSequence(df_val)
 
-    train_dataloader = DataLoader(train_dataset, num_workers=2, batch_size=config["BATCH_SIZE"],
+    train_dataloader = DataLoader(train_dataset, num_workers=1, batch_size=config["BATCH_SIZE"],
                                   shuffle=True)
-    val_dataloader = DataLoader(val_dataset, num_workers=2, batch_size=config["BATCH_SIZE"])
+    val_dataloader = DataLoader(val_dataset, num_workers=1, batch_size=config["BATCH_SIZE"])
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -422,6 +422,7 @@ def train_loop(model, df_train, df_val):
             
             current_steps = config['BATCH_SIZE'] * (idx + 1)
             if (idx+1) % 500 == 0:
+                print('train_total_epochs_loss = ', total_loss_train / current_steps)
                 log_dict =  {
                        "train_curent_batch_acc": acc,
                        "train_loss": loss,
@@ -516,6 +517,11 @@ def train_loop(model, df_train, df_val):
         print(
             f'Epochs: {epoch_num + 1} | Loss: {total_loss_train / len(df_train): .3f} | Accuracy: {total_acc_train / len(df_train): .3f} | Val_Loss: {total_loss_val / len(df_val): .3f} | Accuracy: {total_acc_val / len(df_val): .3f}'
         )
+        model_name_check_point = f"./model_epoch_num_{epoch_num + 1}"
+        model.bert.save_pretrained(model_name_check_point)
+        tokenizer.save_pretrained(model_name_check_point)
+
+
 res = train_loop(model, df_train, df_val)
 
 wandb.finish()
@@ -523,16 +529,16 @@ wandb.finish()
 # xlm-roberta-base
 
 
-res_path = "google/rembert-ft_for_multi_ner_v2"
+res_path = "google-rembert-ft_for_multi_ner_v2"
 model.bert.save_pretrained(res_path)
 tokenizer.save_pretrained(res_path)
-!zip -r "google/rembert-ft_for_multi_ner.zip" google//rembert-ft_for_multi_ner_v2/
+
 
 def evaluate(model, df_test_data):
     metrics = SpanF1()
     test_dataset = DataSequence(df_test_data)
 
-    test_dataloader = DataLoader(test_dataset, num_workers=2, batch_size=12)
+    test_dataloader = DataLoader(test_dataset, num_workers=1, batch_size=16)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -653,7 +659,6 @@ with open("./multi.pred.conll", "w") as my_file:
         my_file.write("\n")
         my_file.write("\n")
 
-!zip my_submission.zip "./multi.pred.conll"
 
 """# NEw test"""
 
@@ -759,13 +764,6 @@ metrics.get_metric()
 
 import seqeval
 
-y_pred = [['B-OtherPER', 'I-OtherPER', 'O', 'O', 'O', 'O', 'O', 'B-PublicCorp', 'I-PublicCorp', 'I-ORG',
-          'I-PublicCorp']]
-y_true =  [['B-OtherPER', 'I-OtherPER', 'O', 'O', 'O', 'O', 'O', 'B-PublicCorp', 'I-PublicCorp', 'I-PublicCorp',
-          'I-PublicCorp']]
-
-f1_score(y_true, y_pred)
-
 answers = [line.split() for line in answers]
 
 for i in range(len(results)):
@@ -773,4 +771,3 @@ for i in range(len(results)):
         print(f'-{i}-')
 
 print(classification_report(answers, results, digits=5))
-
