@@ -38,8 +38,6 @@ def readfile(filename, return_index_file=False):
                 label = []
             continue
         splits = line.split(' ')
-        # print(splits)
-
         sentence.append(splits[0])
         label.append(splits[-1][:-1])
 
@@ -57,7 +55,8 @@ def dataframe_from_reader(reader):
     labels_one_line = []
     labels = []
     for line in reader:
-        sentence = " ".join(line[0])
+        sentence = " ".join([s.translate({769: '_', 1620: '_', 1611: '_', 65533: '_', 1616: '_', 3657: '_',
+                        3633: '_', 3637: '_', 2492: '_', 8203: '_', 8204: '_', 8205: '_', 8206: '_'}) for s in line[0]])
         label = " ".join(line[1])
         sentences_one_line.append(sentence)
         sentences.append(line[0])
