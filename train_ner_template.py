@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .configuration import CONLLIOBV2, MODEL_NAME, config, files_configs
+from configuration import CONLLIOBV2, MODEL_NAME, config, files_configs
 from reader import correct_file, readfile, dataframe_from_reader
 from metric.metric import SpanF1, SpanF1_fix
 from models import RemBertForTokenClassification
