@@ -139,5 +139,3 @@ files_configs = dict(
     base_model_path = "./xlm-roberta-larg",
     res_path = "xlm_roberta_larg_for_multi_ner_v3"
 )
-model_name_check_point = f"./logs/{MODEL_NAME}_model_epoch_num_{1 + 1}"
-print(model_name_check_point)
