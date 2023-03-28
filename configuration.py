@@ -134,8 +134,8 @@ files_configs = dict(
     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
 
-    wandb_run_name = "xlm-roberta-largV3",
-    wandb_notes = "xlm-roberta-larg",
-    base_model_path = "./xlm-roberta-larg",
-    res_path = "xlm_roberta_larg_for_multi_ner_v3"
+    wandb_run_name = "xlm-roberta-largeV3",
+    wandb_notes = "xlm-roberta-large",
+    base_model_path = "./xlm-roberta-large",
+    res_path = "xlm_roberta_large_for_multi_ner_v3"
 )
