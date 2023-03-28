@@ -174,6 +174,8 @@ def train_loop(model, df_train, df_val):
             current_steps = config['BATCH_SIZE'] * (idx + 1)
             if (idx+1) % 500 == 0:
                 print('train_total_epochs_loss = ', total_loss_train / current_steps)
+                print("True labels:", conv_ids_to_label(label_clean))
+                print("Pred labels:", conv_ids_to_label(predictions))
                 log_dict =  {
                        "train_curent_batch_acc": acc,
                        "train_loss": loss,
