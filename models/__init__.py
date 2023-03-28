@@ -1,1 +1,2 @@
 from .rembert import RemBertForTokenClassification
+from .xlm_roberta import XLMRobertaForTokenClassification

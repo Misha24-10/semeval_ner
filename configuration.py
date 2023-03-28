@@ -80,7 +80,40 @@ CONLLIOBV2 = {
     'O': 72
 }
 
-MODEL_NAME = 'google/rembert'
+
+# Rembert config
+
+# MODEL_NAME = 'google/rembert'
+# config = dict(
+#     model_name = MODEL_NAME,
+#     LEARINGIN_RATE = 3e-5,
+#     EPOCHS = 5,
+#     BATCH_SIZE = 32,
+#     TRAIN_VAL_SPLIT = 0.8,
+#     num_warmup_steps = 3000,
+#     CLIP_GRAD_VALUE = 5,
+#     USE_CLIP_GRAD = True,
+#     optimizer = "AdamW",
+#     max_length = 196,
+#     num_cycles = 2,
+#     sheculer = 'get_cosine_with_hard_restarts_schedule_with_warmup'
+# )
+
+
+# files_configs = dict(
+#     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
+#     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
+
+#     wandb_run_name = "google/rembert_v3",
+#     wandb_notes = "rembert",
+#     base_model_path = "./rembert",
+#     res_path = "google-rembert-ft_for_multi_ner_v3"
+# )
+
+
+# xlm-roberta-large config
+
+MODEL_NAME = 'xlm-roberta-large'
 config = dict(
     model_name = MODEL_NAME,
     LEARINGIN_RATE = 3e-5,
@@ -101,8 +134,10 @@ files_configs = dict(
     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
 
-    wandb_run_name = "google/rembert_v3",
-    wandb_notes = "rembert",
-    base_model_path = "./rembert",
-    res_path = "google-rembert-ft_for_multi_ner_v3"
+    wandb_run_name = "xlm-roberta-largV3",
+    wandb_notes = "xlm-roberta-larg",
+    base_model_path = "./xlm-roberta-larg",
+    res_path = "xlm_roberta_larg_for_multi_ner_v3"
 )
+model_name_check_point = f"./logs/{MODEL_NAME}_model_epoch_num_{1 + 1}"
+print(model_name_check_point)

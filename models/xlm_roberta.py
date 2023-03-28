@@ -1,6 +1,6 @@
 
 
-from transformers import XLMRobertaForTokenClassification, XLMRobertaModel, XLMRobertaPreTrainedModel
+from transformers import XLMRobertaModel, XLMRobertaPreTrainedModel
 from torch import nn
 import torch
 
