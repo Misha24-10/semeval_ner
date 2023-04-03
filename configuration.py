@@ -156,8 +156,7 @@ config = dict(
     USE_CLIP_GRAD = True,
     optimizer = "AdamW",
     max_length = 196,
-    sheculer = 'get_linear_schedule_with_warmup',
-    lr_end =  5e-7
+    sheculer = 'get_linear_schedule_with_warmup'
 )
 
 
