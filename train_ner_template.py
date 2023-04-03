@@ -13,12 +13,12 @@ import torch
 import pprint
 import seqeval
 
-from transformers import RemBertForTokenClassification, RemBertTokenizerFast, RemBertConfig
+from transformers import  RemBertTokenizerFast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch.optim import AdamW
 from collections import defaultdict
-from transformers import get_cosine_with_hard_restarts_schedule_with_warmup 
+from transformers import get_cosine_with_hard_restarts_schedule_with_warmup, get_linear_schedule_with_warmup
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from torch import nn
 from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
@@ -112,7 +112,7 @@ class DataSequence(torch.utils.data.Dataset):
         return (batch_data, batch_labels)
 
 
-df_train, df_val = np.split(train_data.sample(frac=1, random_state=1),
+df_train, df_val = np.split(train_data.sample(frac=1, random_state=3),
                                    [int(config["TRAIN_VAL_SPLIT"]* len(train_data))])
 df_train
 
@@ -123,8 +123,8 @@ def train_loop(model, df_train, df_val):
     train_dataset = DataSequence(df_train)
     val_dataset = DataSequence(df_val)
 
-    train_dataloader = DataLoader(train_dataset, num_workers=1, batch_size=config["BATCH_SIZE"], shuffle=True)
-    val_dataloader = DataLoader(val_dataset, num_workers=1, batch_size=config["BATCH_SIZE"])
+    train_dataloader = DataLoader(train_dataset, num_workers=1, batch_size=config["BATCH_SIZE"], shuffle=True, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, num_workers=1, batch_size=config["BATCH_SIZE"], pin_memory=True)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -132,10 +132,21 @@ def train_loop(model, df_train, df_val):
     optimizer = AdamW(model.parameters(), lr= config["LEARINGIN_RATE"])
     total_steps = len(train_dataloader) * config["EPOCHS"]
 
-    scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, 
-                                                num_warmup_steps = config["num_warmup_steps"],
-                                                num_training_steps = total_steps,
-                                                num_cycles=config["num_cycles"])
+
+    if config["sheculer"] == "get_linear_schedule_with_warmup":
+        scheduler = get_linear_schedule_with_warmup(optimizer,
+                                                    num_warmup_steps=config["num_warmup_steps"],
+                                                    num_training_steps=total_steps,
+                                                    lr_end = config["lr_end"])
+
+    elif config["sheculer"] == "get_cosine_with_hard_restarts_schedule_with_warmup":
+        scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, 
+                                                    num_warmup_steps = config["num_warmup_steps"],
+                                                    num_training_steps = total_steps,
+                                                    num_cycles=config["num_cycles"])
+    else:
+        raise ValueError("Unknown scheduler {}".format(config["sheculer"])) 
+
     if use_cuda:
         model = model.cuda()
 
@@ -268,7 +279,7 @@ def train_loop(model, df_train, df_val):
         print(
             f'Epochs: {epoch_num + 1} | Loss: {total_loss_train / len(df_train): .3f} | Accuracy: {total_acc_train / len(df_train): .3f} | Val_Loss: {total_loss_val / len(df_val): .3f} | Accuracy: {total_acc_val / len(df_val): .3f}'
         )
-        model_name_check_point = f"./model_epoch_num_{epoch_num + 1}"
+        model_name_check_point = f"./logs/model_epoch_num_{epoch_num + 1}"
         model.bert.save_pretrained(model_name_check_point)
         tokenizer.save_pretrained(model_name_check_point)
 

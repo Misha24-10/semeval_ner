@@ -5,6 +5,7 @@ import torch
 from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
 from reader import correct_file, readfile, dataframe_from_reader
 from datetime import datetime
+from tqdm.notebook import tqdm
 
 
 rembert_path = "./google-rembert-ft_for_multi_ner_v3"
@@ -133,7 +134,6 @@ def majority_voting(sentence):
 print(majority_voting(sent_ex))
 
 
-from tqdm.notebook import tqdm
 
 answers = []
 size_of_dataset = len(val_subbmit)
