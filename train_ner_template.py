@@ -136,8 +136,7 @@ def train_loop(model, df_train, df_val):
     if config["sheculer"] == "get_linear_schedule_with_warmup":
         scheduler = get_linear_schedule_with_warmup(optimizer,
                                                     num_warmup_steps=config["num_warmup_steps"],
-                                                    num_training_steps=total_steps,
-                                                    lr_end = config["lr_end"])
+                                                    num_training_steps=total_steps)
 
     elif config["sheculer"] == "get_cosine_with_hard_restarts_schedule_with_warmup":
         scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, 
