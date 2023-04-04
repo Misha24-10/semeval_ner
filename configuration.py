@@ -81,7 +81,7 @@ CONLLIOBV2 = {
 }
 
 
-# Rembert config
+# Rembert config versrion V3
 
 # MODEL_NAME = 'google/rembert'
 # config = dict(
@@ -111,7 +111,7 @@ CONLLIOBV2 = {
 # )
 
 
-# xlm-roberta-large config
+# xlm-roberta-large config versrion  V3
 
 # MODEL_NAME = 'xlm-roberta-large'
 # config = dict(
@@ -144,7 +144,36 @@ CONLLIOBV2 = {
 
 # Rembert config_ versrion sky
 
-MODEL_NAME = 'google/rembert'
+# MODEL_NAME = 'google/rembert'
+# config = dict(
+#     model_name = MODEL_NAME,
+#     LEARINGIN_RATE = 3e-5,
+#     EPOCHS = 6,
+#     BATCH_SIZE = 32,
+#     TRAIN_VAL_SPLIT = 0.8,
+#     num_warmup_steps = 4271,
+#     CLIP_GRAD_VALUE = 5,
+#     USE_CLIP_GRAD = True,
+#     optimizer = "AdamW",
+#     max_length = 196,
+#     sheculer = 'get_linear_schedule_with_warmup'
+# )
+
+
+# files_configs = dict(
+#     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
+#     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
+
+#     wandb_run_name = "google/rembert_sky",
+#     wandb_notes = "rembert",
+#     base_model_path = "./rembert",
+#     res_path = "google-rembert-ft_for_multi_ner_sky"
+# )
+
+
+# xlm-roberta-large mountain
+
+MODEL_NAME = 'xlm-roberta-large'
 config = dict(
     model_name = MODEL_NAME,
     LEARINGIN_RATE = 3e-5,
@@ -164,8 +193,8 @@ files_configs = dict(
     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
 
-    wandb_run_name = "google/rembert_sky",
-    wandb_notes = "rembert",
-    base_model_path = "./rembert",
-    res_path = "google-rembert-ft_for_multi_ner_sky"
+    wandb_run_name = "xlm-roberta-large-mountain",
+    wandb_notes = "xlm-roberta-large",
+    base_model_path = "./xlm-roberta-large",
+    res_path = "xlm_roberta_large_mountain"
 )
