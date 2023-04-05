@@ -9,7 +9,9 @@ from tqdm.notebook import tqdm
 
 
 rembert_path = "./google-rembert-ft_for_multi_ner_v3"
-xlm_roberta_path = "./xlm_roberta_large_for_multi_ner_v3"
+xlm_roberta_path = "./xlm_roberta_large_mountain"
+rembert_path_2 = "./google-rembert-ft_for_multi_ner_sky"
+
 test_file_path = "./public_data/MULTI_Multilingual/multi_test.conll"
 
 
@@ -18,12 +20,19 @@ tokenizer_1 = RemBertTokenizerFast.from_pretrained(rembert_path)
 
 model_2 = XLMRobertaForTokenClassification.from_pretrained(xlm_roberta_path)
 tokenizer_2 = XLMRobertaTokenizerFast.from_pretrained(xlm_roberta_path)
-weights = {'model_1': 0.5, 'model_2': 0.5}
+
+model_3 = RemBertForTokenClassification.from_pretrained(rembert_path_2)
+tokenizer_3 = RemBertTokenizerFast.from_pretrained(rembert_path_2)
+
+weights = {'model_1': 0.5, 'model_2': 0.5, 'model_3': 0.5}
 
 model_1.cuda()
 model_2.cuda()
+model_3.cuda()
+
 model_1.eval()
 model_2.eval()
+model_3.eval()
 
 
 correct_file(test_file_path)
@@ -108,7 +117,7 @@ def compute_last_leyer_probs(model, tokenizer, sentence):
 
 def weighted_voting(sentence):
     predictions = []
-    for idx, (model, tokenizer) in enumerate([(model_1, tokenizer_1), (model_2, tokenizer_2)]):
+    for idx, (model, tokenizer) in enumerate([(model_1, tokenizer_1), (model_2, tokenizer_2), (model_3, tokenizer_3)]):
         logits = compute_last_leyer_probs(model, tokenizer, sentence)
         predictions.append(logits * weights[f'model_{idx+1}'])
     final_logits = sum(predictions)
@@ -119,7 +128,7 @@ def weighted_voting(sentence):
 
 def majority_voting(sentence):
     predictions = []
-    for idx, (model, tokenizer) in enumerate([(model_1, tokenizer_1), (model_2, tokenizer_2)]):
+    for idx, (model, tokenizer) in enumerate([(model_1, tokenizer_1), (model_2, tokenizer_2), (model_3, tokenizer_3)]):
         logits = compute_last_leyer_probs(model, tokenizer, sentence)
         labels = torch.argmax(logits, dim=2)
         predictions.append(labels[0].tolist())
@@ -138,12 +147,12 @@ print(majority_voting(sent_ex))
 answers = []
 size_of_dataset = len(val_subbmit)
 for i, line in enumerate(tqdm(val_subbmit.text[:], total=len(val_subbmit))):
-    if i % 500 == 0:
+    if i % 1_000 == 0:
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print(f"current step is {i}/{size_of_dataset}, current time: {current_time}")
 
-    answer = weighted_voting(line.strip().replace('\u200d', 'x').replace('\u200c', 'x').replace('\u200b', 'x').replace('\u200e', 'x'))
+    answer = weighted_voting(line.strip().replace('\u200d', '_').replace('\u200c', '_').replace('\u200b', '_').replace('\u200e', '_'))
     answers.append(answer)
 
 
