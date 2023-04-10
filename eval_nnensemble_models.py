@@ -1,17 +1,25 @@
 from transformers import BertForTokenClassification, BertTokenizerFast
 from transformers import RemBertForTokenClassification, RemBertTokenizerFast
 from transformers import XLMRobertaTokenizerFast, XLMRobertaForTokenClassification
-import torch
 from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
-import seqeval
-from reader import correct_file, readfile, dataframe_from_reader
-from datetime import datetime
 from tqdm.notebook import tqdm
 from torch.utils.data import DataLoader
-import numpy as np
 from torch.nn.utils.rnn import pad_sequence
+from transformers import get_linear_schedule_with_warmup
+
+
+import torch
+import seqeval
+import numpy as np
+import os
+import wandb
+
+from reader import correct_file, readfile, dataframe_from_reader
+from datetime import datetime
 from models import Ensemble_model
-from torch.optim.lr_scheduler import StepLR
+
+
+
 
 rembert_path = "./fine-tuned-models/google-rembert-ft_for_multi_ner_v3"
 xlm_roberta_path = "./fine-tuned-models/xlm_roberta_large_mountain"
@@ -31,8 +39,18 @@ tokenizer_2 = XLMRobertaTokenizerFast.from_pretrained(xlm_roberta_path)
 model_3 = RemBertForTokenClassification.from_pretrained(rembert_path_2)
 tokenizer_3 = RemBertTokenizerFast.from_pretrained(rembert_path_2)
 
-weights = {'model_1': 0.5, 'model_2': 0.5, 'model_3': 0.5}
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+config = {
+    "BATCH_SIZE": 32,
+    "ensemble_hidden_size": 512,
+    "learning_rate": 0.0004,
+    "EPOHES": 2,
+    "num_warmup_steps": 100,
+    "model_1": "google-rembert-ft_for_multi_ner_v3",
+    "mofel_2": "xlm_roberta_large_mountain",
+    "model_3": "google-rembert-ft_for_multi_ner_sky"
+}
 
 
 model_1.to(device)
@@ -155,81 +173,100 @@ def custom_collate(data):
     return {"inputs":inputs, "labels":labels}
 
 
-train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, pin_memory=True, collate_fn=custom_collate)
-val_dataloader = DataLoader(val_dataset, batch_size=32, pin_memory=True, collate_fn=custom_collate)
+train_dataloader = DataLoader(train_dataset, batch_size=config["BATCH_SIZE"], shuffle=True, pin_memory=True, collate_fn=custom_collate)
+val_dataloader = DataLoader(val_dataset, batch_size=config["BATCH_SIZE"], pin_memory=True, collate_fn=custom_collate)
 
 
-model_ens = Ensemble_model(num_models=3)
+os.environ["WANDB_MODE"]="offline"
+wandb.init(
+  project="NER multilangual",
+  notes="ensemble",
+  name = "nn_based_ensemble_of_3_models",
+  config=config,
+)
+
+model_ens = Ensemble_model(config["ensemble_hidden_size"])
 model_ens.train()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_ens.to(device)
-optimizer = torch.optim.Adam(model_ens.parameters(), lr=0.0005)
-scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+optimizer = torch.optim.Adam(model_ens.parameters(), lr=config["learning_rate"])
+scheduler = get_linear_schedule_with_warmup(optimizer,
+                                num_warmup_steps=config["num_warmup_steps"],
+                                num_training_steps=1000)
 EPOCHS = 1
 
-for epoch in range(EPOCHS):
+
+
+
+for epoch in range(config["EPOHES"]):
+    model_ens.train()
     running_loss = 0.0
     correct_predictions = 0
 
     for index, batch in enumerate(tqdm(train_dataloader, total=len(train_dataloader))):
         inputs, labels = batch["inputs"].to(device), batch["labels"].to(device)
+        
         optimizer.zero_grad()
         loss, logits = model_ens(inputs, labels)
         loss.backward()
         optimizer.step()
+        scheduler.step()
+
         if index % 150 == 0:
             print(f"iteration {index} || current loss = {round(float(loss),3)}")
         running_loss += loss.item() * inputs.size(0)
-    
+
+
+        if index % 500 == 0:
+            torch.save({
+                'epoch': epoch+1,
+                'model_state_dict': model_ens.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                }, f"./ensemble_models/model_ens_iterration_{(index + 1) + len(train_dataloader)*epoch}.cpt")
+        wandb.log({
+             "train_loss": loss,
+             "train_running_loss": running_loss / ((index+ 1) * config["BATCH_SIZE"]),
+             "learnig_rate": (scheduler.get_lr()[0]),
+        })
     epoch_loss = running_loss / len(train_dataset)
-    scheduler.step()
+    print(f"epoch_loss = {epoch_loss}")
 
+    model_ens.eval()
+    labels_list = []
+    labels_list_2 = []
+    running_loss = 0.0
+
+    for index, batch in enumerate(tqdm(val_dataloader, total=len(val_dataloader))):
+        inputs, labels = batch["inputs"].to(device), batch["labels"].to(device)
+        loss, logits = model_ens(inputs, labels)
+        labels_clear = []
+
+        running_loss += loss.item() * inputs.size(0)
+        wandb.log({
+             "vall_loss": loss,
+             "vall_running_loss":  running_loss / ((index+ 1) * config["BATCH_SIZE"])
+        })
+        for line in labels:
+            labels_clear.append([int(i)  for i in line if i != -100])
+        res = []
+        for i in range(logits.shape[0]):
+            res.append(logits[i][:len(labels_clear[i]),:])
+        pred_labels = [i.argmax(axis=1) for i in res]
+
+        for line in pred_labels:
+            labels_list.append([model_1.config.id2label[int(i)] for i in line])
+
+        for line in labels:
+            labels_list_2.append([model_1.config.id2label[int(i)] for i in line if int(i) != -100])
+    print(classification_report(labels_list_2, labels_list, digits=5))
+    
+    print("Saving model weights ....")
     torch.save({
-            'epoch': epoch+1,
-            'model_state_dict': model_ens.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            }, f"model_trained_model_ens{epoch+1}.cpt")
-
-
-    print(f"Epoch {epoch+1} - Train Loss: {epoch_loss:.4f}")
-
-
-
-model_ens.eval()
-labels_list = []
-labels_list_2 = []
-for batch in tqdm(val_dataloader, total=len(val_dataloader)):
-    inputs, labels = batch["inputs"].to(device), batch["labels"].to(device)
-    loss, logits = model_ens(inputs, labels)
-    labels_clear = []
-    for line in labels:
-        labels_clear.append([int(i)  for i in line if i != -100])
-    res = []
-    for i in range(logits.shape[0]):
-        res.append(logits[i][:len(labels_clear[i]),:])
-    pred_labels = [i.argmax(axis=1) for i in res]
-
-    for line in pred_labels:
-        labels_list.append([model_1.config.id2label[int(i)] for i in line])
-
-    for line in labels:
-        labels_list_2.append([model_1.config.id2label[int(i)] for i in line if int(i) != -100])
-
-
-index = 12
-print("Pred:", labels_list[index])
-print("True:", labels_list_2[index])
-
-
-print(classification_report(labels_list_2, labels_list, digits=5))
-
-
-print("Model's state_dict:")
-for param_tensor in model_ens.state_dict():
-    print(param_tensor, "\t", model_ens.state_dict()[param_tensor].size())
-
-
-
+        'epoch': epoch+1,
+        'model_state_dict': model_ens.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        }, f"./ensemble_models/model_trained_model_ens_end_epoch_{epoch+1}.cpt")
+    
 with open("./submission/multi_valid.pred.conll", "w") as my_file:
     my_file.write("\n")
     for i in range(len(labels_list)):
