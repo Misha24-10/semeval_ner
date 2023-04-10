@@ -52,6 +52,39 @@ train_subbmit = dataframe_from_reader(train_reader)
 val_subbmit = dataframe_from_reader(test_reader)
 
 
+
+
+label_all_tokens = False
+
+def align_word_ids(word_ids, return_word_ids=False):    
+    previous_word_idx = None
+    label_ids = []
+    index_list = []
+    for idx, word_idx in enumerate(word_ids):
+
+        if word_idx is None:
+            label_ids.append(-100)
+
+        elif word_idx != previous_word_idx:
+            try:
+                label_ids.append(1)
+                index_list.append(idx)
+            except:
+                label_ids.append(-100)
+        else:
+            try:
+                label_ids.append(1 if label_all_tokens else -100)
+            except:
+                label_ids.append(-100)
+        previous_word_idx = word_idx
+
+    if return_word_ids:
+        return label_ids, index_list
+    else:
+        return label_ids
+
+
+
 def compute_last_leyer_probs(model, tokenizer, sentence):
 
     number_of_tokens = tokenizer.encode_plus(sentence, return_tensors='pt',)['input_ids'].shape[-1]
