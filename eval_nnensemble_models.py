@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from models import Ensemble_model
-from torch.optim import StepLR
+import torch.optim.lr_scheduler.StepLR
 
 rembert_path = "./fine-tuned-models/google-rembert-ft_for_multi_ner_v3"
 xlm_roberta_path = "./fine-tuned-models/xlm_roberta_large_mountain"
