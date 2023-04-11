@@ -13,7 +13,7 @@ rembert_path = "./fine-tuned-models/google-rembert-ft_for_multi_ner_v3"
 xlm_roberta_path = "./fine-tuned-models/xlm_roberta_large_mountain"
 rembert_path_2 = "./fine-tuned-models/google-rembert-ft_for_multi_ner_sky"
 
-test_file_path = "./public_data/MULTI_Multilingual/multi_dev.conll"
+test_file_path = "./public_data/MULTI_Multilingual/multi_test.conll"
 checkpoint_path = "./ensemble_models/model_trained_model_ens_end_epoch_2.cpt"
 
 model_1 = RemBertForTokenClassification.from_pretrained(rembert_path)
