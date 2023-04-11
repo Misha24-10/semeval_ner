@@ -192,8 +192,7 @@ model_ens.to(device)
 optimizer = torch.optim.Adam(model_ens.parameters(), lr=config["learning_rate"])
 scheduler = get_linear_schedule_with_warmup(optimizer,
                                 num_warmup_steps=config["num_warmup_steps"],
-                                num_training_steps=1000)
-EPOCHS = 1
+                                num_training_steps=config["EPOHES"] * len(train_dataloader))
 
 
 
