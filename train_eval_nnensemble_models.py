@@ -1,7 +1,7 @@
-from transformers import BertForTokenClassification, BertTokenizerFast
-from transformers import RemBertForTokenClassification, RemBertTokenizerFast
-from transformers import XLMRobertaTokenizerFast, XLMRobertaForTokenClassification
-from seqeval.metrics import f1_score, recall_score, precision_score, accuracy_score, classification_report
+from models import RemBertForTokenClassification, XLMRobertaForTokenClassification
+from transformers import RemBertTokenizerFast, XLMRobertaTokenizerFast
+
+from seqeval.metrics import classification_report
 from tqdm.notebook import tqdm
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
@@ -22,8 +22,8 @@ from models import Ensemble_model
 
 
 rembert_path = "./fine-tuned-models/google-rembert-ft_for_multi_ner_v3"
-xlm_roberta_path = "./fine-tuned-models/xlm_roberta_large_mountain"
-rembert_path_2 = "./fine-tuned-models/google-rembert-ft_for_multi_ner_sky"
+xlm_roberta_path = "./logs/logs_xlm/xlm-roberta-large_model_epoch_num_4"
+rembert_path_2 = "./logs/model_epoch_num_4"
 
 
 train_file_path = "./public_data/MULTI_Multilingual/multi_train.conll"
@@ -48,8 +48,8 @@ config = {
     "EPOHES": 2,
     "num_warmup_steps": 100,
     "model_1": "google-rembert-ft_for_multi_ner_v3",
-    "mofel_2": "xlm_roberta_large_mountain",
-    "model_3": "google-rembert-ft_for_multi_ner_sky"
+    "mofel_2": "xlm_roberta_large_mountain/xlm-roberta-large_model_epoch_num_4",
+    "model_3": "google-rembert-ft_for_multi_ner_sky/ogs/model_epoch_num_4"
 }
 
 
@@ -181,7 +181,7 @@ os.environ["WANDB_MODE"]="offline"
 wandb.init(
   project="NER multilangual",
   notes="ensemble",
-  name = "nn_based_ensemble_of_3_models",
+  name = "nn_based_ensemble_of_3_models_other_models",
   config=config,
 )
 
@@ -221,7 +221,7 @@ for epoch in range(config["EPOHES"]):
                 'epoch': epoch+1,
                 'model_state_dict': model_ens.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                }, f"./ensemble_models/model_ens_iterration_{(index + 1) + len(train_dataloader)*epoch}.cpt")
+                }, f"./ensemble_models/other_base_model/model_ens_iterration_{(index + 1) + len(train_dataloader)*epoch}.cpt")
         wandb.log({
              "train_loss": loss,
              "train_running_loss": running_loss / ((index+ 1) * config["BATCH_SIZE"]),
@@ -264,9 +264,9 @@ for epoch in range(config["EPOHES"]):
         'epoch': epoch+1,
         'model_state_dict': model_ens.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        }, f"./ensemble_models/model_trained_model_ens_end_epoch_{epoch+1}.cpt")
+        }, f"./ensemble_models/other_base_model/model_trained_model_ens_end_epoch_{epoch+1}.cpt")
     
-with open("./submission/multi_valid.pred.conll", "w") as my_file:
+with open("./submission/multi_valid_ver2.pred.conll", "w") as my_file:
     my_file.write("\n")
     for i in range(len(labels_list)):
         my_file.write(test_index[i])
