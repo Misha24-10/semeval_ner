@@ -40,6 +40,7 @@ def readfile(filename, return_index_file=False):
         splits = line.split(' ')
         sentence.append(splits[0])
         label.append(splits[-1][:-1])
+    f.close()
 
     if len(sentence) > 0:
         data.append((sentence, label))
