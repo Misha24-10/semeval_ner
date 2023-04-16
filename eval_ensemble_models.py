@@ -82,7 +82,7 @@ def evaluate_one_text(tokenizer, model, sentence):
         model = model.cuda()
 
     input = sentence.split(' ')
-    text = tokenizer(input, is_split_into_words=True, padding='max_length', max_length = 512, truncation=True, return_tensors="pt")
+    text = tokenizer(input, is_split_into_words=True, padding='max_length', max_length = 256, truncation=True, return_tensors="pt")
     label_ids = torch.Tensor(align_word_ids(text.word_ids())).unsqueeze(0).to(device)
 
     mask = text['attention_mask'][0].unsqueeze(0).to(device)
@@ -105,7 +105,7 @@ def compute_last_leyer_probs(model, tokenizer, sentence):
     number_of_tokens = tokenizer.encode_plus(sentence, return_tensors='pt',)['input_ids'].shape[-1]
     list_of_words = sentence.split()
 
-    inputs = tokenizer(list_of_words, is_split_into_words=True, padding='max_length', max_length = min(number_of_tokens,512), truncation=True, return_tensors="pt")
+    inputs = tokenizer(list_of_words, is_split_into_words=True, padding='max_length', max_length = min(number_of_tokens,256), truncation=True, return_tensors="pt")
     input_ids = inputs['input_ids'].cuda()
     attention_mask = inputs['attention_mask'].cuda()
     label_ids = torch.Tensor(align_word_ids(inputs.word_ids()))
