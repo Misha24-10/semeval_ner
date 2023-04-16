@@ -8,9 +8,9 @@ from datetime import datetime
 from tqdm.notebook import tqdm
 
 
-rembert_path = "./google-rembert-ft_for_multi_ner_v3"
-xlm_roberta_path = "./xlm_roberta_large_mountain"
-rembert_path_2 = "./google-rembert-ft_for_multi_ner_sky"
+rembert_path = "./fine-tuned-models/google-rembert-ft_for_multi_ner_v3"
+xlm_roberta_path = "./fine-tuned-models/xlm_roberta_large_mountain"
+rembert_path_2 = "/fine-tuned-models/google-rembert-ft_for_multi_ner_sky"
 
 test_file_path = "./public_data/MULTI_Multilingual/multi_test.conll"
 
