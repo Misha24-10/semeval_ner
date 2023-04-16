@@ -152,7 +152,7 @@ for i, line in enumerate(tqdm(val_subbmit.text[:], total=len(val_subbmit))):
         current_time = now.strftime("%H:%M:%S")
         print(f"current step is {i}/{size_of_dataset}, current time: {current_time}")
 
-    answer = weighted_voting(line.strip().replace('\u200d', '_').replace('\u200c', '_').replace('\u200b', '_').replace('\u200e', '_'))
+    answer = majority_voting(line.strip().replace('\u200d', '_').replace('\u200c', '_').replace('\u200b', '_').replace('\u200e', '_'))
     answers.append(answer)
 
 
