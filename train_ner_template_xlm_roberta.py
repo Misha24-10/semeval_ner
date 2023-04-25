@@ -3,7 +3,7 @@
 from configuration import CONLLIOBV2, MODEL_NAME, config, files_configs
 from reader import correct_file, readfile, dataframe_from_reader
 from metric.metric import SpanF1, SpanF1_fix
-from models import XLMRobertaForTokenClassification
+from models import XLMRobertaBILSTMForTokenClassification
 
 import os
 import wandb
@@ -51,7 +51,9 @@ wandb.init(
 class BertModelforNer(torch.nn.Module):
     def __init__(self):
         super(BertModelforNer, self).__init__()
-        self.bert = XLMRobertaForTokenClassification.from_pretrained(files_configs["base_model_path"], num_labels=len(set_unique_labels))
+        self.bert = XLMRobertaBILSTMForTokenClassification.from_pretrained(files_configs["base_model_path"],
+                                                                      num_labels=len(set_unique_labels),
+                                                                      hidden_dropout_prob = files_configs["hidden_dropout_prob"])
         self.bert.config.label2id = labels_to_ids
         self.bert.config.id2label = ids_to_labels
     def forward(self, input_id, mask, label):
@@ -112,7 +114,7 @@ class DataSequence(torch.utils.data.Dataset):
         return (batch_data, batch_labels)
 
 
-df_train, df_val = np.split(train_data.sample(frac=1, random_state=4),
+df_train, df_val = np.split(train_data.sample(frac=1, random_state=12),
                                    [int(config["TRAIN_VAL_SPLIT"]* len(train_data))])
 df_train
 
@@ -185,7 +187,7 @@ def train_loop(model, df_train, df_val):
             scheduler.step()
             
             current_steps = config['BATCH_SIZE'] * (idx + 1)
-            if (idx+1) % 500 == 0:
+            if (idx+1) % 250 == 0:
                 print('train_total_epochs_loss = ', total_loss_train / current_steps)
                 print("True labels:", conv_ids_to_label(label_clean))
                 print("Pred labels:", conv_ids_to_label(predictions))
