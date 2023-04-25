@@ -53,7 +53,7 @@ class BertModelforNer(torch.nn.Module):
         super(BertModelforNer, self).__init__()
         self.bert = XLMRobertaBILSTMForTokenClassification.from_pretrained(files_configs["base_model_path"],
                                                                       num_labels=len(set_unique_labels),
-                                                                      hidden_dropout_prob = files_configs["hidden_dropout_prob"])
+                                                                      hidden_dropout_prob = config["hidden_dropout_prob"])
         self.bert.config.label2id = labels_to_ids
         self.bert.config.id2label = ids_to_labels
     def forward(self, input_id, mask, label):
