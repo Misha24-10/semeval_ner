@@ -201,11 +201,40 @@ CONLLIOBV2 = {
 
 
 # xlm-roberta-large + bilstm
-MODEL_NAME = 'xlm-roberta-large'
+# MODEL_NAME = 'xlm-roberta-large'
+# config = dict(
+#     model_name = MODEL_NAME,
+#     LEARINGIN_RATE = 3e-5,
+#     EPOCHS = 6,
+#     BATCH_SIZE = 32,
+#     TRAIN_VAL_SPLIT = 0.8,
+#     num_warmup_steps = 4271,
+#     CLIP_GRAD_VALUE = 5,
+#     USE_CLIP_GRAD = True,
+#     optimizer = "AdamW",
+#     max_length = 128,
+#     sheculer = 'get_linear_schedule_with_warmup',
+#     hidden_dropout_prob = 0.2
+# )
+
+
+# files_configs = dict(
+#     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
+#     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
+
+#     wandb_run_name = "xlm-roberta-large-bilstm",
+#     wandb_notes = "xlm-roberta-large",
+#     base_model_path = "./xlm-roberta-large",
+#     res_path = "./fine-tuned-models/xlm_roberta_large_bilstm"
+# )
+
+
+# Rembert config_ versrion BILSTM
+MODEL_NAME = 'google/rembert'
 config = dict(
     model_name = MODEL_NAME,
     LEARINGIN_RATE = 3e-5,
-    EPOCHS = 6,
+    EPOCHS = 10,
     BATCH_SIZE = 32,
     TRAIN_VAL_SPLIT = 0.8,
     num_warmup_steps = 4271,
@@ -222,9 +251,8 @@ files_configs = dict(
     train_path = "./public_data/MULTI_Multilingual/multi_train.conll",
     test_path = "./public_data/MULTI_Multilingual/multi_dev.conll",
 
-    wandb_run_name = "xlm-roberta-large-bilstm",
-    wandb_notes = "xlm-roberta-large",
-    base_model_path = "./xlm-roberta-large",
-    res_path = "./fine-tuned-models/xlm_roberta_large_bilstm"
+    wandb_run_name = "google/rembert_bilstm",
+    wandb_notes = "rembert",
+    base_model_path = "./rembert",
+    res_path = "./fine-tuned-models/google-rembert-ft_bilstm"
 )
-

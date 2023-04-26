@@ -1,3 +1,3 @@
-from .rembert import RemBertForTokenClassification
+from .rembert import RemBertForTokenClassification, RemBertForTokenBILSTMClassification
 from .xlm_roberta import XLMRobertaForTokenClassification, XLMRobertaBILSTMForTokenClassification
 from .ensemble_nn_model import Ensemble_model
