@@ -280,7 +280,7 @@ def train_loop(model, df_train, df_val):
         print(
             f'Epochs: {epoch_num + 1} | Loss: {total_loss_train / len(df_train): .3f} | Accuracy: {total_acc_train / len(df_train): .3f} | Val_Loss: {total_loss_val / len(df_val): .3f} | Accuracy: {total_acc_val / len(df_val): .3f}'
         )
-        model_name_check_point = f"./logs/model_epoch_num_{epoch_num + 1}"
+        model_name_check_point = f"./logs/model_epoch_num_bilstm_rembert{epoch_num + 1}"
         model.bert.save_pretrained(model_name_check_point)
         tokenizer.save_pretrained(model_name_check_point)
 
