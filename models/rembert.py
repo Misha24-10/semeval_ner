@@ -85,7 +85,7 @@ class RemBertForTokenBILSTMClassification(RemBertPreTrainedModel):
 
         self.rembert = RemBertModel(config, add_pooling_layer=False)
         classifier_dropout = (
-            config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
+            config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
         self.bilstm = nn.LSTM(bidirectional=True, num_layers=NUM_LAYER, input_size=config.hidden_size, hidden_size=hidden_size)
