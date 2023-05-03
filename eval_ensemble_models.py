@@ -24,7 +24,7 @@ tokenizer_2 = XLMRobertaTokenizerFast.from_pretrained(xlm_roberta_path)
 model_3 = RemBertForTokenClassification.from_pretrained(rembert_path_2)
 tokenizer_3 = RemBertTokenizerFast.from_pretrained(rembert_path_2)
 
-weights = {'model_1': 0.5, 'model_2': 0.5, 'model_3': 0.5}
+weights = {'model_1': 0.75, 'model_2': 1, 'model_3': 0.5}
 
 model_1.cuda()
 model_2.cuda()
@@ -152,11 +152,11 @@ for i, line in enumerate(tqdm(val_subbmit.text[:], total=len(val_subbmit))):
         current_time = now.strftime("%H:%M:%S")
         print(f"current step is {i}/{size_of_dataset}, current time: {current_time}")
 
-    answer = majority_voting(line.strip().replace('\u200d', '_').replace('\u200c', '_').replace('\u200b', '_').replace('\u200e', '_'))
+    answer = weighted_voting(line.strip().replace('\u200d', '_').replace('\u200c', '_').replace('\u200b', '_').replace('\u200e', '_'))
     answers.append(answer)
 
 
-with open("./submission/multi.pred.conll", "w") as my_file:
+with open("./submission/multi_wightet_voit.pred.conll", "w") as my_file:
     my_file.write("\n")
     for i in range(len(answers)):
         my_file.write(test_index[i])
