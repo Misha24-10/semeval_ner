@@ -2,7 +2,7 @@
 
 Структура данного репозитория выглядит следующим образом:
 semeval_ner
-├── .gitignore
+> ├── .gitignore
 ├── configuration.py
 ├── eval_ensemble_models.py
 ├── eval__nn_based_ensemble_models.py
@@ -18,7 +18,7 @@ semeval_ner
 │ └── init.py
 └── reader
 ├── reader.py
-└── init.py
+└── init.py`
 
 
 ## Описание файлов
