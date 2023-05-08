@@ -22,8 +22,6 @@
 ## Результаты
 [WanDB project page](https://wandb.ai/mishaya/NER%20multilangual?workspace=user-mishaya "WanDB project page")
 
-Дообученные модели
-[WanDB project page](https://wandb.ai/mishaya/NER%20multilangual?workspace=user-mishaya "WanDB project page")
 Дообученные модели:
 
 –	Model_1 = [google–rembert–ft_for_multi_ner_v3](https://drive.google.com/file/d/1IRrip01noCquGDDFcV14Qw-SRjUwkXHB/view?usp=share_link "google–rembert–ft_for_multi_ner_v3");
